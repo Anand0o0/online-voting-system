@@ -1,4 +1,8 @@
 document.addEventListener('DOMContentLoaded', function() {
+    function logCookies() {
+        console.log(document.cookie);
+    }
+
     // Client-side validation for registration form
     var registrationForm = document.getElementById('registration-form');
     if (registrationForm) {
@@ -11,11 +15,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 event.preventDefault();
             }
 
-            if (!/^\d{2}[A-Za-z]{3}\d{4}$/.test(regNumber)) {
-                alert('Invalid registration number. Format: 2 digits, 3 letters, 4 digits.');
+            if (!/^\d{2}[A-Z]{2}\d{4}$/.test(regNumber)) {
+                alert('Invalid registration number. Format: 2 digits, 2 letters, 4 digits.');
                 event.preventDefault();
             }
+            alert('User is Registered');
         });
+        logCookies();
     }
 
     // Client-side validation for login form
@@ -30,10 +36,18 @@ document.addEventListener('DOMContentLoaded', function() {
                 event.preventDefault();
             }
 
-            if (!/^\d{2}[A-Za-z]{3}\d{4}$/.test(regNumber)) {
-                alert('Invalid registration number. Format: 2 digits, 3 letters, 4 digits.');
+            if (!/^\d{2}[A-Z]{2}\d{4}$/.test(regNumber)) {
+                alert('Invalid registration number. Format: 2 digits, 2 letters, 4 digits.');
                 event.preventDefault();
             }
+            alert('User is Logged in');
         });
+        logCookies();
     }
+    function editCandidate(candidate) {
+        document.getElementById('id').value = candidate.id;
+        document.getElementById('name').value = candidate.name;
+        document.getElementById('post').value = candidate.post;
+    }
+    logCookies();
 });
