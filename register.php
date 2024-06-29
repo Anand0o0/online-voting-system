@@ -1,30 +1,94 @@
 <?php include 'header.php'; ?>
 <?php
+use PHPMailer\PHPMailer\PHPMailer;
+use PHPMailer\PHPMailer\Exception;
+require 'vendor/autoload.php'; // Ensure PHPMailer is installed via Composer
+
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    $username = filter_input(INPUT_POST, 'username', FILTER_SANITIZE_STRING);
-    $password = $_POST['password'];
-    $registration_number = filter_input(INPUT_POST, 'registration_number', FILTER_SANITIZE_STRING);
-    $email = filter_input(INPUT_POST, 'email', FILTER_VALIDATE_EMAIL);
-    $role = $_POST['role'];
+    if (isset($_POST['register'])) {
+        $username = filter_input(INPUT_POST, 'username', FILTER_SANITIZE_STRING);
+        $password = $_POST['password'];
+        $registration_number = filter_input(INPUT_POST, 'registration_number', FILTER_SANITIZE_STRING);
+        $email = filter_input(INPUT_POST, 'email', FILTER_VALIDATE_EMAIL);
+        $role = $_POST['role'];
 
-    if (!preg_match('/@ptuniv\.edu\.in$/', $email)) {
-        die("Invalid email address. Must be a ptuniv.edu.in email.");
+        if (!$email) {
+            die("Invalid email address.");
+        }
+
+        if (!preg_match('/@ptuniv\.edu\.in$/', $email)) {
+            die("Invalid email address. Must be a ptuniv.edu.in email.");
+        }
+
+        if (!preg_match('/^\d{2}[A-Za-z]{2}\d{4}$/', $registration_number)) {
+            die("Invalid registration number. Format: 2 digits, 2 letters, 4 digits.");
+        }
+
+        $hashed_password = password_hash($password, PASSWORD_DEFAULT);
+        $verification_token = rand(100000, 999999); // Generate a random verification token
+
+        $conn = new mysqli('localhost', 'root', '', 'voting_system');
+        if ($conn->connect_error) {
+            die("Connection failed: " . $conn->connect_error);
+        }
+
+        // Check for duplicate email or registration number
+        $stmt = $conn->prepare("SELECT COUNT(*) FROM users WHERE email = ? OR registration_number = ?");
+        if (!$stmt) {
+            die("Prepare failed: " . $conn->error);
+        }
+        $stmt->bind_param('ss', $email, $registration_number);
+        $stmt->execute();
+        $stmt->bind_result($count);
+        $stmt->fetch();
+        $stmt->close();
+
+        if ($count > 0) {
+            die("Email address or registration number already registered.");
+        }
+
+        $stmt = $conn->prepare("INSERT INTO users (username, password, registration_number, email, role, verification_token) VALUES (?, ?, ?, ?, ?, ?)");
+        if (!$stmt) {
+            die("Prepare failed: " . $conn->error);
+        }
+        $stmt->bind_param('ssssss', $username, $hashed_password, $registration_number, $email, $role, $verification_token);
+        if (!$stmt->execute()) {
+            die("Execute failed: " . $stmt->error);
+        }
+        $stmt->close();
+        $conn->close();
+
+        // Send verification email
+        $mail = new PHPMailer(true);
+        try {
+            //Server settings
+            $mail->isSMTP();
+            $mail->Host = 'smtp.gmail.com'; // Gmail SMTP server
+            $mail->SMTPAuth = true;
+            $mail->Username = 'anand2020143@gmail.com'; // Your Gmail address
+            $mail->Password = 'mher rcsk keoe twhl'; // Your Gmail app password
+            $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+            $mail->Port = 587;
+
+            //Recipients
+            $mail->setFrom('your-email@gmail.com', 'Online Voting System'); // Replace with your email and name
+            $mail->addAddress($email, $username);
+
+            // Content
+            $mail->isHTML(true);
+            $mail->Subject = 'Email Verification';
+            $mail->Body = "Your verification code is: $verification_token";
+
+            $mail->send();
+            echo 'Verification email has been sent.';
+        } catch (Exception $e) {
+            echo "Message could not be sent. Mailer Error: {$mail->ErrorInfo}";
+        }
+
+        // Redirect to verification form
+        header("Location: verify.php?email=$email");
+        exit;
     }
-
-    if (!preg_match('/^\d{2}[A-Za-z]{3}\d{4}$/', $registration_number)) {
-        die("Invalid registration number. Format: 2 digits, 3 letters, 4 digits.");
-    }
-
-    $hashed_password = password_hash($password, PASSWORD_DEFAULT);
-
-    $conn = new mysqli('localhost', 'root', '', 'voting_system');
-    $stmt = $conn->prepare("INSERT INTO users (username, password, registration_number, email, role) VALUES (?, ?, ?, ?, ?)");
-    $stmt->bind_param('sssss', $username, $hashed_password, $registration_number, $email, $role);
-    $stmt->execute();
-    $stmt->close();
-    $conn->close();
-
-    echo "<p>Registration successful!</p>";
 }
 ?>
 <form id="registration-form" method="post" action="register.php">
@@ -47,6 +111,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         <option value="admin">Class Representative</option>
     </select><br>
 
-    <input type="submit" value="Register">
+    <input type="submit" name="register" value="Register">
 </form>
 <?php include 'footer.php'; ?>

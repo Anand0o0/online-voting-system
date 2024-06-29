@@ -6,13 +6,15 @@ document.addEventListener('DOMContentLoaded', function() {
             var email = document.getElementById('email').value;
             var regNumber = document.getElementById('registration_number').value;
 
+            // Validate email
             if (!/^[a-zA-Z0-9._%+-]+@ptuniv\.edu\.in$/.test(email)) {
                 alert('Invalid email address. Must be a ptuniv.edu.in email.');
                 event.preventDefault();
             }
 
-            if (!/^\d{2}[A-Za-z]{3}\d{4}$/.test(regNumber)) {
-                alert('Invalid registration number. Format: 2 digits, 3 letters, 4 digits.');
+            // Validate registration number
+            if (!/^\d{2}[A-Za-z]{2}\d{4}$/.test(regNumber)) {
+                alert('Invalid registration number. Format: 2 digits, 2 letters, 4 digits.');
                 event.preventDefault();
             }
         });
@@ -22,16 +24,18 @@ document.addEventListener('DOMContentLoaded', function() {
     var loginForm = document.getElementById('login-form');
     if (loginForm) {
         loginForm.addEventListener('submit', function(event) {
-            var email = document.getElementById('email').value;
-            var regNumber = document.getElementById('registration_number').value;
+            var email = document.getElementById('login-email').value;
+            var regNumber = document.getElementById('login-registration_number').value;
 
+            // Validate email
             if (!/^[a-zA-Z0-9._%+-]+@ptuniv\.edu\.in$/.test(email)) {
                 alert('Invalid email address. Must be a ptuniv.edu.in email.');
                 event.preventDefault();
             }
 
-            if (!/^\d{2}[A-Za-z]{3}\d{4}$/.test(regNumber)) {
-                alert('Invalid registration number. Format: 2 digits, 3 letters, 4 digits.');
+            // Validate registration number
+            if (!/^\d{2}[A-Za-z]{2}\d{4}$/.test(regNumber)) {
+                alert('Invalid registration number. Format: 2 digits, 2 letters, 4 digits.');
                 event.preventDefault();
             }
         });
