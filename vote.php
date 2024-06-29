@@ -44,7 +44,9 @@ $posts = $conn->query("SELECT DISTINCT post FROM candidates");
 
     <input type="submit" value="Vote">
 </form>
+<button type="button" onclick="window.location.href = 'results.php'">Results</button>
 
+<!-- AJAX -->
 <script>
     function fetchCandidates(post) {
         var candidateSelectDiv = document.getElementById('candidate_select');
@@ -62,25 +64,29 @@ $posts = $conn->query("SELECT DISTINCT post FROM candidates");
                     return response.json();
                 })
                 .then(data => {
-                    candidateSelect.innerHTML = '';
-
-                    var defaultOption = document.createElement('option');
-                    defaultOption.value = '';
-                    defaultOption.textContent = 'Select candidate';
-                    candidateSelect.appendChild(defaultOption);
-
                     data.forEach(candidate => {
-                        var option = document.createElement('option');
-                        option.value = candidate.id;
-                        option.textContent = candidate.name;
-                        candidateSelect.appendChild(option);
-                    });
+                    var candidateDiv = document.createElement('div');
+                        candidateDiv.className = 'candidate';
 
-                    if (candidateSelectDiv.firstChild) {
-                        candidateSelectDiv.replaceChild(candidateSelect, candidateSelectDiv.firstChild);
-                    } else {
-                        candidateSelectDiv.appendChild(candidateSelect);
-                    }
+                        var candidateOption = document.createElement('input');
+                        candidateOption.type = 'radio';
+                        candidateOption.name = 'candidate';
+                        candidateOption.value = candidate.id;
+                        candidateOption.required = true;
+
+                        var candidateLabel = document.createElement('label');
+                        candidateLabel.textContent = candidate.name;
+
+                        var candidateImage = document.createElement('img');
+                        candidateImage.src = candidate.image_path;
+                        candidateImage.alt = candidate.name;
+                        candidateImage.width = 100;
+
+                        candidateDiv.appendChild(candidateOption);
+                        candidateDiv.appendChild(candidateLabel);
+                        candidateDiv.appendChild(candidateImage);
+                        candidateSelectDiv.appendChild(candidateDiv);
+                    });
                 })
                 .catch(error => console.error('Error:', error));
         } else {

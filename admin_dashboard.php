@@ -2,7 +2,7 @@
 <?php
 session_start();
 
-//allowing only admins
+// Allowing only admins
 if (!isset($_SESSION['admin_username']) || !$_SESSION['admin_username']) {
     header('Location: admin_login.php');
     exit();
@@ -17,13 +17,31 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $name = htmlspecialchars($_POST['name']);
     $post = htmlspecialchars($_POST['post']);
     $id = isset($_POST['id']) ? intval($_POST['id']) : 0;
+    $image_path = '';
+
+    // Handle image upload
+    if (isset($_FILES['image']) && $_FILES['image']['error'] == 0) {
+        $target_dir = "uploads/";
+        $target_file = $target_dir . basename($_FILES["image"]["name"]);
+        
+        if (move_uploaded_file($_FILES["image"]["tmp_name"], $target_file)) {
+            $image_path = $target_file;
+        } else {
+            echo "Sorry, there was an error uploading your file.";
+        }
+    }
 
     if ($id > 0) {
-        $stmt = $conn->prepare("UPDATE candidates SET name = ?, post = ? WHERE id = ?");
-        $stmt->bind_param('ssi', $name, $post, $id);
+        if (!empty($image_path)) {
+            $stmt = $conn->prepare("UPDATE candidates SET name = ?, post = ?, image_path = ? WHERE id = ?");
+            $stmt->bind_param('sssi', $name, $post, $image_path, $id);
+        } else {
+            $stmt = $conn->prepare("UPDATE candidates SET name = ?, post = ? WHERE id = ?");
+            $stmt->bind_param('ssi', $name, $post, $id);
+        }
     } else {
-        $stmt = $conn->prepare("INSERT INTO candidates (name, post) VALUES (?, ?)");
-        $stmt->bind_param('ss', $name, $post);
+        $stmt = $conn->prepare("INSERT INTO candidates (name, post, image_path) VALUES (?, ?, ?)");
+        $stmt->bind_param('sss', $name, $post, $image_path);
     }
 
     if ($stmt->execute()) {
@@ -60,7 +78,7 @@ $conn->close();
 
 <div id="admin-dashboard" class="container">
     <h1>Manage Candidates</h1>
-    <form method="post" action="admin_dashboard.php">
+    <form method="post" action="admin_dashboard.php" enctype="multipart/form-data">
         <input type="hidden" name="id" id="id" value="">
         <label for="name">Name:</label>
         <input type="text" id="name" name="name" required><br>
@@ -69,6 +87,8 @@ $conn->close();
             <option value="Class Representative">Class Representative</option>
             <option value="Assistant Class Representative">Assistant Class Representative</option>
         </select><br>
+        <label for="image">Image:</label>
+        <input type="file" id="image" name="image" accept="image/*"><br><br>
         <input type="submit" value="Save">
     </form>
 
@@ -79,6 +99,7 @@ $conn->close();
                 <th>ID</th>
                 <th>Name</th>
                 <th>Post</th>
+                <th>Image</th>
                 <th>Actions</th>
             </tr>
         </thead>
@@ -88,6 +109,10 @@ $conn->close();
                     <td><?php echo $candidate['id']; ?></td>
                     <td><?php echo $candidate['name']; ?></td>
                     <td><?php echo $candidate['post']; ?></td>
+                    <td><?php if ($candidate['image_path']) : ?>
+                        <img src="<?php echo $candidate['image_path']; ?>" alt="<?php echo $candidate['name']; ?>" width="100">
+                        <?php endif; ?>
+                    </td>
                     <td>
                         <a href="javascript:void(0);" onclick="editCandidate(<?php echo htmlspecialchars(json_encode($candidate)); ?>)">Edit</a>
                         <a href="admin_dashboard.php?delete=<?php echo $candidate['id']; ?>" onclick="return confirm('Are you sure you want to delete this candidate?');">Delete</a>
