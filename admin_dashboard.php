@@ -2,9 +2,9 @@
 <?php
 session_start();
 
-// Check if the user is logged in as admin
+//allowing only admins
 if (!isset($_SESSION['admin_username']) || !$_SESSION['admin_username']) {
-    header('Location: admin_login.php'); // Redirect to admin login page
+    header('Location: admin_login.php');
     exit();
 }
 
@@ -66,8 +66,8 @@ $conn->close();
         <input type="text" id="name" name="name" required><br>
         <label for="post">Post:</label>
         <select id="post" name="post" required>
-            <option value="Class Representative">Class Representative</option>
-            <option value="Assistant Class Representative">Assistant Class Representative</option>
+            <option value="cr">Class Representative</option>
+            <option value="acr">Assistant Class Representative</option>
         </select><br>
         <input type="submit" value="Save">
     </form>
@@ -89,7 +89,7 @@ $conn->close();
                     <td><?php echo $candidate['name']; ?></td>
                     <td><?php echo $candidate['post']; ?></td>
                     <td>
-                        <a href="javascript:void(0);" onclick="editCandidate(<?php echo htmlspecialchars(json_encode($candidate)); ?>)">Edit</a> |
+                        <a href="javascript:void(0);" onclick="editCandidate(<?php echo htmlspecialchars(json_encode($candidate)); ?>)">Edit</a>
                         <a href="admin_dashboard.php?delete=<?php echo $candidate['id']; ?>" onclick="return confirm('Are you sure you want to delete this candidate?');">Delete</a>
                     </td>
                 </tr>
@@ -97,4 +97,11 @@ $conn->close();
         </tbody>
     </table>
 </div>
+<script>
+    function editCandidate(candidate) {
+        document.getElementById('id').value = candidate.id;
+        document.getElementById('name').value = candidate.name;
+        document.getElementById('post').value = candidate.post;
+    }
+</script>
 <?php include 'footer.php'; ?>

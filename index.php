@@ -4,6 +4,6 @@
 <div class="buttons">
     <a href="register.php" class="button">Register</a>
     <a href="login.php" class="button">Login</a>
-    <a href="admin.php" class="button">Admin</a>
+    <a href="admin_login.php" class="button">Admin</a>
 </div>
 <?php include 'footer.php'; ?>
