@@ -66,8 +66,8 @@ $conn->close();
         <input type="text" id="name" name="name" required><br>
         <label for="post">Post:</label>
         <select id="post" name="post" required>
-            <option value="cr">Class Representative</option>
-            <option value="acr">Assistant Class Representative</option>
+            <option value="Class Representative">Class Representative</option>
+            <option value="Assistant Class Representative">Assistant Class Representative</option>
         </select><br>
         <input type="submit" value="Save">
     </form>

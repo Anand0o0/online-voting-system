@@ -28,55 +28,66 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     echo "<p>Vote cast successfully!</p>";
 }
 
-$result = $conn->query("SELECT id, name FROM candidates");
 $posts = $conn->query("SELECT DISTINCT post FROM candidates");
 
 ?>
 <form method="post" action="vote.php">
     <label for="candidate_post">Choose post:</label>
-    <select id="candidate_post" name="candidate_post" required>
+    <select id="post_select" name="candidate_post" onchange="fetchCandidates(this.value)" required>
+        <option value="">Select Post</option>
         <?php while ($row = $posts->fetch_assoc()) : ?>
-            <option value="<?= htmlspecialchars($row['post']) ?>"><a href="javascript:void(0);" onclick="fetchCandidate(<?php echo htmlspecialchars($row['post']); ?>)"><?= htmlspecialchars($row['post']) ?></a>
-            </option>
+            <option value="<?= htmlspecialchars($row['post']) ?>"><?= htmlspecialchars($row['post']) ?></option>
         <?php endwhile; ?>
     </select><br>
-    <label for="candidate">Choose a candidate:</label>
-    <select id="candidate" name="candidate" required>
-        <?php while ($row = $result->fetch_assoc()) : ?>
-            <option value=""></option>
-        <?php endwhile; ?>
-    </select><br>
+
+    <div id="candidate_select"></div>
+
     <input type="submit" value="Vote">
 </form>
 
-<!-- dynamic update using AJAX -->
 <script>
-    function fetchCandidate() {
-        document.addEventListener('DOMContentLoaded', function() {
-            var candidatePostSelect = document.getElementById('candidate_post');
-            var candidateSelect = document.getElementById('candidate');
+    function fetchCandidates(post) {
+        var candidateSelectDiv = document.getElementById('candidate_select');
+        var candidateSelect = document.createElement('select');
+        candidateSelect.name = 'candidate';
+        candidateSelect.id = 'candidate';
+        candidateSelect.required = true;
 
-            candidatePostSelect.addEventListener('change', function() {
-                var post = candidatePostSelect.value;
+        if (post) {
+            fetch('fetch_candidates.php?post=' + encodeURIComponent(post))
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    candidateSelect.innerHTML = '';
 
-                if (post) {
-                    fetch('fetch_candidates.php?post=' + post)
-                        .then(response => response.json())
-                        .then(data => {
-                            candidateSelect.innerHTML = '<option value=""></option>';
-                            data.forEach(candidate => {
-                                var option = document.createElement('option');
-                                option.value = candidate.id;
-                                option.textContent = candidate.name;
-                                candidateSelect.appendChild(option);
-                            });
-                        })
-                        .catch(error => console.error('Error:', error));
-                } else {
-                    candidateSelect.innerHTML = "<option value=''>can't fetch, won't fetch</option>";
-                }
-            });
-        });
+                    var defaultOption = document.createElement('option');
+                    defaultOption.value = '';
+                    defaultOption.textContent = 'Select candidate';
+                    candidateSelect.appendChild(defaultOption);
+
+                    data.forEach(candidate => {
+                        var option = document.createElement('option');
+                        option.value = candidate.id;
+                        option.textContent = candidate.name;
+                        candidateSelect.appendChild(option);
+                    });
+
+                    if (candidateSelectDiv.firstChild) {
+                        candidateSelectDiv.replaceChild(candidateSelect, candidateSelectDiv.firstChild);
+                    } else {
+                        candidateSelectDiv.appendChild(candidateSelect);
+                    }
+                })
+                .catch(error => console.error('Error:', error));
+        } else {
+            candidateSelect.innerHTML = '<option value="">Select Post first</option>';
+            candidateSelectDiv.replaceChild(candidateSelect, candidateSelectDiv.firstChild);
+        }
     }
 </script>
+
 <?php include 'footer.php'; ?>
