@@ -1,93 +1,89 @@
 <?php include 'header.php'; ?>
 <?php
+session_start();
+ob_start();
+
+require 'vendor/phpmailer/phpmailer/PHPMailer-6.9.1/src/PHPMailer.php';
+require 'vendor/phpmailer/phpmailer/PHPMailer-6.9.1/src/Exception.php';
+require 'vendor/phpmailer/phpmailer/PHPMailer-6.9.1/src/SMTP.php';
+
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
-require 'vendor/autoload.php'; // Ensure PHPMailer is installed via Composer
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    if (isset($_POST['register'])) {
-        $username = filter_input(INPUT_POST, 'username', FILTER_SANITIZE_STRING);
-        $password = $_POST['password'];
-        $registration_number = filter_input(INPUT_POST, 'registration_number', FILTER_SANITIZE_STRING);
-        $email = filter_input(INPUT_POST, 'email', FILTER_VALIDATE_EMAIL);
-        $role = $_POST['role'];
+    $username = htmlspecialchars($_POST['username']);
+    $password = htmlspecialchars($_POST['password']);
+    $registration_number = htmlspecialchars($_POST['registration_number']);
+    $email = filter_input(INPUT_POST, 'email', FILTER_VALIDATE_EMAIL);
+    $role = htmlspecialchars($_POST['role']);
+    $verification_code = rand(100000, 999999);
+    $is_verified = 0;
 
-        if (!$email) {
-            die("Invalid email address.");
-        }
+    if (!preg_match('/@ptuniv\.edu\.in$/', $email)) {
+        die("Invalid email address. Must be a ptuniv.edu.in email.");
+    }
 
-        if (!preg_match('/@ptuniv\.edu\.in$/', $email)) {
-            die("Invalid email address. Must be a ptuniv.edu.in email.");
-        }
+    if (!preg_match('/^\d{2}[A-Z]{2}\d{4}$/', $registration_number)) {
+        die("Invalid registration number. Format: 2 digits, 2 letters, 4 digits.");
+    }
 
-        if (!preg_match('/^\d{2}[A-Za-z]{2}\d{4}$/', $registration_number)) {
-            die("Invalid registration number. Format: 2 digits, 2 letters, 4 digits.");
-        }
+    $hashed_password = password_hash($password, PASSWORD_DEFAULT);
 
-        $hashed_password = password_hash($password, PASSWORD_DEFAULT);
-        $verification_token = rand(100000, 999999); // Generate a random verification token
+    $conn = new mysqli('localhost', 'root', '', 'voting_system');
+    $stmt = $conn->prepare("INSERT INTO users (username, password, registration_number, email, role, is_verified, verification_token) VALUES (?, ?, ?, ?, ?, ?, ?)");
+    $stmt->bind_param('sssssss', $username, $hashed_password, $registration_number, $email, $role, $is_verified, $verification_code);
+    $stmt->execute();
+    $stmt->close();
+    $conn->close();
 
-        $conn = new mysqli('localhost', 'root', '', 'voting_system');
-        if ($conn->connect_error) {
-            die("Connection failed: " . $conn->connect_error);
-        }
-
-        // Check for duplicate email or registration number
-        $stmt = $conn->prepare("SELECT COUNT(*) FROM users WHERE email = ? OR registration_number = ?");
-        if (!$stmt) {
-            die("Prepare failed: " . $conn->error);
-        }
-        $stmt->bind_param('ss', $email, $registration_number);
-        $stmt->execute();
-        $stmt->bind_result($count);
-        $stmt->fetch();
-        $stmt->close();
-
-        if ($count > 0) {
-            die("Email address or registration number already registered.");
-        }
-
-        $stmt = $conn->prepare("INSERT INTO users (username, password, registration_number, email, role, verification_token) VALUES (?, ?, ?, ?, ?, ?)");
-        if (!$stmt) {
-            die("Prepare failed: " . $conn->error);
-        }
-        $stmt->bind_param('ssssss', $username, $hashed_password, $registration_number, $email, $role, $verification_token);
-        if (!$stmt->execute()) {
-            die("Execute failed: " . $stmt->error);
-        }
-        $stmt->close();
-        $conn->close();
-
-        // Send verification email
+    echo "<p>Registration successful! Please check your email for the verification code.</p>";
+    if (isset($_POST['submitRegister']) && $is_verified === 0) {
         $mail = new PHPMailer(true);
-        try {
-            //Server settings
-            $mail->isSMTP();
-            $mail->Host = 'smtp.gmail.com'; // Gmail SMTP server
-            $mail->SMTPAuth = true;
-            $mail->Username = 'anand2020143@gmail.com'; // Your Gmail address
-            $mail->Password = 'app password'; // Your Gmail app password
-            $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
-            $mail->Port = 587;
 
-            //Recipients
-            $mail->setFrom('your-email@gmail.com', 'Online Voting System'); // Replace with your email and name
+        try {
+            // Server settings
+            $mail->isSMTP();
+            $mail->Host       = 'smtp.gmail.com'; // SMTP server to send through
+            $mail->SMTPAuth   = true;
+            $mail->Username   = 'vijethayc@gmail.com';
+            $mail->Password   = 'wckobphfuzilxdns';
+            $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+            $mail->Port       = 587;
+
+            // Recipients
+            $mail->setFrom('vijethayc@gmail.com', 'Vijetha Y C');
             $mail->addAddress($email, $username);
+
+            //$mail->addAttachment('/uploads/profile-picture-f67r1m9y562wdtin.jpg', 'GIRL');
 
             // Content
             $mail->isHTML(true);
-            $mail->Subject = 'Email Verification';
-            $mail->Body = "Your verification code is: $verification_token";
+            $mail->Subject = 'ONLINE VOTING SYSTEM: Email Verification';
+            $mail->Body    = "Hi $username,<br><br>Your verification code is: <b>$verification_code</b><br><br>Thank you!";
+            $mail->AltBody = "Hi $username,\n\nYour verification code is: $verification_code\n\nThank you!";
 
-            $mail->send();
-            echo 'Verification email has been sent.';
+            $mail->SMTPDebug = 2;
+            // $mail->send();
+            // echo 'Verification email has been sent.';
+
+            if ($mail->send()) {
+                echo 'Verification email has been sent.';
+                ob_end_clean(); // Clean output buffer before header()
+                if ($role === 'admin') {
+                    header("Location: admin_login.php");
+                } else {
+                    header("Location: login.php");
+                }
+                exit(0);
+            } else {
+                echo "Message could not be sent. Mailer Error: {$mail->ErrorInfo}";
+                ob_end_clean();
+                header("Location: {$_SERVER["HTTP_REFERER"]}");
+                exit(0);
+            }
         } catch (Exception $e) {
             echo "Message could not be sent. Mailer Error: {$mail->ErrorInfo}";
         }
-
-        // Redirect to verification form
-        header("Location: verify.php?email=$email");
-        exit;
     }
 }
 ?>
@@ -107,10 +103,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     <label for="role">Role:</label>
     <select id="role" name="role" required>
         <option value="voter">Voter</option>
-        <option value="assistant">Assistant Class Representative</option>
-        <option value="admin">Class Representative</option>
+        <option value="acr">Assistant Class Representative</option>
+        <option value="cr">Class Representative</option>
+        <option value="admin">Admin</option>
     </select><br>
 
-    <input type="submit" name="register" value="Register">
+    <input type="submit" value="Register" name="submitRegister">
 </form>
 <?php include 'footer.php'; ?>

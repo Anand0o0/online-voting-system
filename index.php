@@ -6,4 +6,5 @@
     <a href="login.php" class="button">Login</a>
     <a href="admin_login.php" class="button">Admin</a>
 </div>
+<?php include 'news.php'; ?>
 <?php include 'footer.php'; ?>
