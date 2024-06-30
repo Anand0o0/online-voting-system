@@ -51,21 +51,19 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $mail->Port       = 587;
 
             // Recipients
-            $mail->setFrom('vijethayc@gmail.com', 'Vijetha Y C');
+            $mail->setFrom('vijethayc@gmail.com', 'ONLINE VOTING SYSTEM');
             $mail->addAddress($email, $username);
 
             //$mail->addAttachment('/uploads/profile-picture-f67r1m9y562wdtin.jpg', 'GIRL');
 
             // Content
             $mail->isHTML(true);
-            $mail->Subject = 'ONLINE VOTING SYSTEM: Email Verification';
+            $mail->Subject = 'Email Verification';
             $mail->Body    = "Hi $username,<br><br>Your verification code is: <b>$verification_code</b><br><br>Thank you!";
             $mail->AltBody = "Hi $username,\n\nYour verification code is: $verification_code\n\nThank you!";
 
             $mail->SMTPDebug = 2;
-            // $mail->send();
-            // echo 'Verification email has been sent.';
-
+            
             if ($mail->send()) {
                 echo 'Verification email has been sent.';
                 ob_end_clean(); // Clean output buffer before header()
